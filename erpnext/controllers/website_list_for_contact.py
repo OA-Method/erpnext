@@ -104,7 +104,13 @@ def get_transaction_list(
 
 	filters["docstatus"] = ["<", "2"] if doctype in ["Supplier Quotation", "Purchase Invoice"] else 1
 
-	if (user != "Guest" and is_website_user()) or doctype == "Request for Quotation":
+	# OA-Method/framework#312 (fork patch): scope by party for anyone holding Customer or Supplier,
+	# the same test has_website_permission applies to the document page. Upstream scoped only
+	# Website Users, so a staff account that also shops was listed every customer's orders and
+	# could open none of them.
+	if (
+		user != "Guest" and (is_website_user() or has_common(["Customer", "Supplier"], frappe.get_roles(user)))
+	) or doctype == "Request for Quotation":
 		parties_doctype = "Request for Quotation Supplier" if doctype == "Request for Quotation" else doctype
 		# find party for this contact
 		customers, suppliers = get_customers_suppliers(parties_doctype, user)
